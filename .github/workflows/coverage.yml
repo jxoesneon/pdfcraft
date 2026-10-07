@@ -1,0 +1,19 @@
+name: Test Coverage & Verification Gate
+
+on:
+  push:
+    branches: [ main, feat/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  coverage:
+    name: 100% Test Coverage Verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install llvm-cov
+        run: cargo install cargo-llvm-cov
+      - name: Verify Coverage Threshold
+        run: cargo llvm-cov --all-features --workspace --fail-under-lines 95
