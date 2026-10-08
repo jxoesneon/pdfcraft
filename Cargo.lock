@@ -3781,6 +3781,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "pdfcraft-ui-martensite"
+version = "0.2.1"
+dependencies = [
+ "proptest",
+ "serde",
+ "serde_json",
+ "tracing",
+]
+
+[[package]]
 name = "pdfcraft-web"
 version = "0.2.1"
 dependencies = [
