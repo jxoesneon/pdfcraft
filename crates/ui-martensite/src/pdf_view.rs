@@ -16,11 +16,7 @@ impl PdfDocState {
     }
 
     pub fn add_note(&mut self, page: usize, rect: [f32; 4], text: &str) {
-        self.annotations.push(Annotation {
-            page,
-            rect,
-            contents: text.to_string(),
-        });
+        self.annotations.push(Annotation { page, rect, contents: text.to_string() });
     }
 }
 

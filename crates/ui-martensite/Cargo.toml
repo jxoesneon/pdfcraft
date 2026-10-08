@@ -3,12 +3,17 @@ name = "pdfcraft-ui-martensite"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Sovereign retained-mode PDF document engineering user interface for PDFCraft powered by Martensite"
+description = "Sovereign retained-mode, GPU-accelerated graphical user interface for PdfCraft powered by Martensite"
+
+[lints]
+workspace = true
 
 [dependencies]
+pdfcraft-engine = { workspace = true }
+
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
-proptest = "1.4"
+proptest.workspace = true

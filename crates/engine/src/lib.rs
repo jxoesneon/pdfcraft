@@ -1750,6 +1750,28 @@ pub struct Session {
     js_off: bool,
 }
 
+/// The application engine: documents, commands, history and tool state.
+/// Named `Engine` so UIs (egui, Martensite, headless) refer to one type.
+pub type Engine = Session;
+
+/// Interactive tool identity, in the All tools order. UI-agnostic so every
+/// front-end shares the canonical list; each UI maps it to its own presentation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Tool {
+    Select,
+    Hand,
+    Snapshot,
+    Zoom,
+    EditText,
+    Comment,
+    Stamp,
+    FillSign,
+    Measure,
+    Redact,
+    CropPages,
+    OrganizePages,
+}
+
 /// Lay a dynamic XFA form out (pages and fields) and give its widgets appearances.
 fn xfa_layout(doc: &mut pdfcraft_cos::Document) -> Result<XfaLayout, String> {
     let report = pdfcraft_xfa::render_into(doc).map_err(|e| e.to_string())?;
