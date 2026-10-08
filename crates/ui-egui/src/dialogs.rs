@@ -1,4 +1,4 @@
-//! Modal dialogs: Document Properties, Keyboard Shortcuts, About.
+//! Modal dialogs: Document Properties, Keyboard Shortcuts, About (with the Contributors and Models credits).
 
 use egui::{Align, Layout};
 
@@ -66,6 +66,7 @@ pub fn show(app: &mut PdfCraftApp, ctx: &egui::Context) {
             Dialog::Properties(_) => 640.0,
             Dialog::Print => 820.0,
             Dialog::FieldProps => 600.0,
+            Dialog::About => 780.0,
             _ => 520.0,
         });
         // Dialog controls are outlined (radio buttons, check boxes, combo boxes and number fields
@@ -1029,7 +1030,7 @@ pub fn show(app: &mut PdfCraftApp, ctx: &egui::Context) {
                     ("⌘+ / ⌘−", tl!("Zoom in / out (also pinch or ⌘-scroll)")),
                     ("⇧⌘+ / ⇧⌘−", tl!("Rotate view")),
                     ("Home / End", tl!("First / last page")),
-                    ("⌘← / ⌘→", tl!("Previous / next page")),
+                    ("← / →, ⌘← / ⌘→", tl!("Previous / next page")),
                     ("Delete", tl!("Delete selected pages (Organize)")),
                     ("⌘A", tl!("Select all pages (Organize)")),
                 ] {
@@ -1046,30 +1047,49 @@ pub fn show(app: &mut PdfCraftApp, ctx: &egui::Context) {
                 });
             }
             Dialog::About => {
+                // Tabs About · Contributors · Models (craftrules standards/contributors.md).
+                let tab_id = egui::Id::new("about_tab");
+                let mut tab = ui.data_mut(|d| d.get_temp::<u8>(tab_id)).unwrap_or(0);
                 ui.horizontal(|ui| {
-                    widgets::artcraft_mark(ui, 40.0);
-                    ui.vertical(|ui| {
-                        ui.label(egui::RichText::new("PdfCraft").font(theme::semibold(20.0)));
-                        ui.label(crate::i18n::fmt(tl!("Version {v}"), &[("v", env!("CARGO_PKG_VERSION"))]));
-                    });
+                    for (i, label) in ["About", "Contributors", "Models"].into_iter().enumerate() {
+                        let i = i as u8;
+                        if widgets::mode_tab(ui, tl!(label), tab == i).clicked() {
+                            tab = i;
+                        }
+                    }
                 });
-                ui.add_space(6.0);
-                ui.label(tl!("A clean-room, open-source PDF application written in Rust. MIT OR Apache-2.0."));
-                ui.label(
-                    egui::RichText::new(
-                        "Rendering: hayro (bootstrap) · UI: egui · Icons: Lucide (ISC) · Fonts: Inter, JetBrains Mono, Dancing Script (OFL)",
-                    )
-                    .color(t.text_muted)
-                    .small(),
-                );
-                ui.add_space(12.0);
-                ui.horizontal(|ui| {
-                    ui.label(egui::RichText::new(tl!("Part of")).color(t.text_muted));
-                    widgets::artcraft_logo(ui, 16.0);
-                });
-                ui.add_space(6.0);
-                if let Some(cmd) = widgets::community_links(ui) {
-                    link_command = Some(cmd);
+                ui.data_mut(|d| d.insert_temp(tab_id, tab));
+                ui.separator();
+                match tab {
+                    1 => crate::credits::contributors_ui(ui),
+                    2 => crate::credits::models_ui(ui),
+                    _ => {
+                        ui.horizontal(|ui| {
+                            widgets::artcraft_mark(ui, 40.0);
+                            ui.vertical(|ui| {
+                                ui.label(egui::RichText::new("PdfCraft").font(theme::semibold(20.0)));
+                                ui.label(crate::i18n::fmt(tl!("Version {v}"), &[("v", env!("CARGO_PKG_VERSION"))]));
+                            });
+                        });
+                        ui.add_space(6.0);
+                        ui.label(tl!("A clean-room, open-source PDF application written in Rust. MIT OR Apache-2.0."));
+                        ui.label(
+                            egui::RichText::new(
+                                "Rendering: hayro (bootstrap) · UI: egui · Icons: Lucide (ISC) · Fonts: Inter, JetBrains Mono, Dancing Script (OFL)",
+                            )
+                            .color(t.text_muted)
+                            .small(),
+                        );
+                        ui.add_space(12.0);
+                        ui.horizontal(|ui| {
+                            ui.label(egui::RichText::new(tl!("Part of")).color(t.text_muted));
+                            widgets::artcraft_logo(ui, 16.0);
+                        });
+                        ui.add_space(6.0);
+                        if let Some(cmd) = widgets::community_links(ui) {
+                            link_command = Some(cmd);
+                        }
+                    }
                 }
             }
         }
@@ -1122,7 +1142,11 @@ pub fn show(app: &mut PdfCraftApp, ctx: &egui::Context) {
             app.discard_recovered(&keys);
         }
     }
-    if replace_now && let Some(d) = app.replace_draft.take() {
+    // The pages to replace belong to the document the dialog was opened on (#167).
+    if replace_now
+        && let Some(d) = app.replace_draft.take()
+        && app.still_pick_target(d.target)
+    {
         let n = d.to - d.from + 1;
         app.apply_edit(Edit::ReplacePages {
             pages: (d.from - 1..d.to).collect(),
@@ -1131,8 +1155,9 @@ pub fn show(app: &mut PdfCraftApp, ctx: &egui::Context) {
             src_pages: (d.src_from - 1..d.src_from - 1 + n).collect(),
         });
     }
-    if print_go {
-        app.print_now();
+    // A print or save that fails keeps the dialog open, with the reason in a notice.
+    if print_go && !app.print_now() {
+        close = false;
     }
     if revert_now {
         app.revert_active();
@@ -1322,7 +1347,7 @@ pub(crate) fn save_prompt_key(ctx: &egui::Context) -> Option<Option<bool>> {
 fn save_prompt(app: &mut PdfCraftApp, ctx: &egui::Context) {
     let Some(req) = app.close_request else { return };
     let index = match req {
-        CloseRequest::Tab(i) => Some(i),
+        CloseRequest::Tab(id) => app.views.iter().position(|v| v.id == id),
         CloseRequest::Quit | CloseRequest::All => app.first_dirty(),
     };
     let Some(name) = index.and_then(|i| app.views.get(i)).and_then(|v| app.session.get(v.id)).map(|d| d.name.clone()) else {
