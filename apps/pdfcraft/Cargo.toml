@@ -27,3 +27,8 @@ fmv-macos-events = "=0.1.0"
 [build-dependencies]
 # Icon + VERSIONINFO for pdfcraft.exe; build.rs only uses it when targeting Windows.
 winresource = "0.1"
+
+[package.metadata.generate-rpm]
+assets = [
+    { source = "target/release/pdfcraft", dest = "/usr/bin/pdfcraft", mode = "755" }
+]
