@@ -12,6 +12,7 @@ rust-version = "1.90"
 repository = "https://github.com/storytold/pdfcraft"
 
 [workspace.dependencies]
+tracing = "0.1"
 # internal
 pdfcraft-geom = { path = "crates/geom", version = "0.2.0" }
 pdfcraft-filters = { path = "crates/filters", version = "0.2.0" }
